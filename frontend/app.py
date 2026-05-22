@@ -27,8 +27,17 @@ st.markdown("""
 div[data-testid="stMetricValue"] { font-size:20px; color:#2e7bcf; }
 .vault-header { font-size:13px; color:#888; text-transform:uppercase; letter-spacing:1px; }
 /* Hide the JS activity-tracker input completely */
-div[data-testid="stTextInput"]:has(label) [aria-label="_activity_tracker"] {
-    position:absolute; left:-9999px;
+input[aria-label="_activity_tracker"],
+div[data-testid="stTextInput"] input[aria-label="_activity_tracker"] {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    opacity: 0 !important;
+    left: -9999px !important;
+    top: -9999px !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -676,8 +685,8 @@ elif st.session_state.page == "dashboard":
         logo_small()
         st.title("⚙️ Settings")
 
-        tab_edit, tab_hints, tab_security, tab_danger = st.tabs(
-            ["📝 Edit Entries", "🔖 Hints", "🔑 Security", "🚨 Danger Zone"]
+        tab_edit, tab_security, tab_danger = st.tabs(
+            ["📝 Edit Entries", "🔑 Security", "🚨 Danger Zone"]
         )
 
         # EDIT ENTRIES 
@@ -702,42 +711,6 @@ elif st.session_state.page == "dashboard":
                         if ref and "vault" in ref: st.session_state.password_vault = ref["vault"]
                         st.success("Entry updated!"); st.rerun()
                     elif data: st.error(data.get("error", "Update failed."))
-
-        #  HINTS 
-        with tab_hints:
-            st.subheader("🔖 Master Password Hints")
-            st.info(
-                "Write clues to jog your own memory — **not the password itself**. "
-                "Stored as plain text on the server. Zero-knowledge is preserved — "
-                "hints are never used to decrypt anything."
-            )
-            existing, _ = _api.get_hints()
-            current = existing.get("hints", []) if existing else []
-            if current:
-                st.write("**Current hints:**")
-                for i, h in enumerate(current, 1): st.write(f"{i}. {h}")
-                st.markdown("---")
-
-            padded = current + [""] * (3 - len(current))
-            nh1 = st.text_input("Hint 1", value=padded[0], key="nh1")
-            nh2 = st.text_input("Hint 2", value=padded[1], key="nh2")
-            nh3 = st.text_input("Hint 3", value=padded[2], key="nh3")
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("💾 Save Hints", key="save_hints_btn"):
-                    _session.touch()
-                    new_hints = [h for h in [nh1,nh2,nh3] if h.strip()]
-                    if not new_hints: st.error("Enter at least one hint.")
-                    else:
-                        data, _ = _api.save_hints(new_hints)
-                        if data and "message" in data: st.success(data["message"]); st.rerun()
-                        elif data: st.error(data.get("error","Failed to save hints."))
-            with col2:
-                if st.button("🗑️ Delete All Hints", key="del_hints_btn"):
-                    _session.touch()
-                    data, _ = _api.delete_hints()
-                    if data and "message" in data: st.success("Hints deleted."); st.rerun()
-                    elif data: st.error(data.get("error","Failed."))
 
         # SECURITY 
         with tab_security:
