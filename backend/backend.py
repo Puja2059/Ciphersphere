@@ -1051,8 +1051,8 @@ def delete_account(email):
     except Exception as e:
         print(f"[delete_account] {e}")
         return jsonify({"error": "Internal server error."}), 500
-
-# MAIN
+# Main
 if __name__ == '__main__':
-    app.run(debug=False)
+    print("🚀 CipherSphere Backend engine initializing on http://127.0.0.1:5000")
+    app.run(host="127.0.0.1", port=5000, debug=True)
     

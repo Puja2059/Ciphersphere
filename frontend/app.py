@@ -353,12 +353,14 @@ if st.session_state.page == "home":
                         data, code = _api.signup(s_email, s_pass)
                         if data and "error" in data:
                             st.error(data["error"])
+
                         elif data:
-                            if data.get("token"): st.session_state.token = data["token"]
-                            st.session_state.user_email = s_email
-                            st.session_state.page       = "master_password_setup"
+                            if data.get("token"): 
+                                st.session_state.token = data["token"]
+                                st.session_state.user_email = s_email
+                                st.session_state.page = "master_password_setup"
                             st.rerun()
-    st.stop()
+    
 
 
 # PAGE 1b — RESET LOGIN PASSWORD: REQUEST
@@ -388,7 +390,7 @@ elif st.session_state.page == "reset_login_request":
         st.markdown("---")
         if st.button("← Back to Login", key="rlr_back"):
             st.session_state.page = "home"; st.rerun()
-    st.stop()
+
 
 
 # PAGE 1c — RESET LOGIN PASSWORD: CONFIRM
@@ -440,7 +442,7 @@ elif st.session_state.page == "reset_login_confirm":
                 if st.button("← Cancel", key="rlc_cancel"):
                     st.session_state.pop("_reset_email", None)
                     st.session_state.page = "home"; st.rerun()
-    st.stop()
+
 
 
 # PAGE 2 — MASTER PASSWORD SETUP
@@ -490,7 +492,7 @@ elif st.session_state.page == "master_password_setup":
                     st.session_state.otp_sent = False
                     st.session_state.page = "email_verification"
                     st.rerun()
-    st.stop()
+
 
 # PAGE 3 — MASTER PASSWORD ENTRY
 
@@ -530,7 +532,7 @@ elif st.session_state.page == "master_password_entry":
         with col1:
             if st.button("Logout", key="unlock_logout"):
                 _session.clear(); st.rerun()
-    st.stop()
+
 
 # PAGE 4 — EMAIL VERIFICATION
 
@@ -564,7 +566,7 @@ elif st.session_state.page == "email_verification":
                 data, _ = _api.send_otp(st.session_state.user_email, purpose="verification")
                 if data and "error" in data: st.error(data["error"])
                 else: st.session_state.otp_sent = True; st.success("New code sent!")
-    st.stop()
+
 
 # PAGE 5 — DASHBOARD
 
