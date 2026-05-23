@@ -41,7 +41,8 @@ div[data-testid="stTextInput"] input[aria-label="_activity_tracker"] {
 }
 </style>
 """, unsafe_allow_html=True)
-# 1. PASSWORD STRENGTH CHECKER  
+
+# 1. PASSWORD STRENGTH CHECKER
 class PasswordStrengthChecker:
     STRONG_THRESHOLD = 6
     MIN_LENGTH       = 8
@@ -97,16 +98,16 @@ def show_strength(pw: str):
         unsafe_allow_html=True
     )
     for t in tips: st.caption(f"⚠ {t}")
-# 2. SESSION MANAGER 
+
+# 2. SESSION MANAGER
 class SessionManager:
-    DEFAULT_TIMEOUT = 300    
-    JS_THROTTLE_MS  = 5_000  
+    DEFAULT_TIMEOUT = 300
+    JS_THROTTLE_MS  = 5_000
 
     def touch(self):
         st.session_state.last_activity = datetime.now()
 
     def sync_from_js(self):
-        """Read JS-reported timestamp and update last_activity if newer."""
         raw = st.session_state.get("_js_activity_ts", "")
         if not raw: return
         try:
@@ -120,7 +121,7 @@ class SessionManager:
     def is_locked(self) -> bool:
         last = st.session_state.get("last_activity")
         if last is None: return False
-        timeout  = st.session_state.get("auto_lock_val", self.DEFAULT_TIMEOUT)
+        timeout = st.session_state.get("auto_lock_val", self.DEFAULT_TIMEOUT)
         return datetime.now() > last + timedelta(seconds=timeout)
 
     def enforce(self):
@@ -150,13 +151,8 @@ _session = SessionManager()
 
 
 def inject_activity_tracker(timeout_seconds: int):
-    """
-    Inject the JS inactivity tracker.
-    Listens to mouse/keyboard events → writes timestamp to hidden input.
-    Reloads page after (timeout - 10)s of silence so Python enforce() fires.
-    """
-    throttle_ms  = SessionManager.JS_THROTTLE_MS
-    reload_ms    = max((timeout_seconds - 10) * 1000, 5_000)
+    throttle_ms = SessionManager.JS_THROTTLE_MS
+    reload_ms   = max((timeout_seconds - 10) * 1000, 5_000)
     components.html(f"""
     <script>
     (function(){{
@@ -223,26 +219,22 @@ class APIClient:
         except requests.exceptions.Timeout:
             return {"error": "Request timed out."}, 0
 
-    # Auth
     def login(self, email, pw):
         return self._call("post", "/login", json={"email": email, "password": pw})
     def signup(self, email, pw):
         return self._call("post", "/signup", json={"email": email, "password": pw})
 
-    # OTP — purpose: "verification" | "password_reset"
     def send_otp(self, email, purpose="verification"):
         return self._call("post", "/send_otp", json={"email": email, "purpose": purpose})
     def verify_otp(self, email, otp):
         return self._call("post", "/verify_otp", json={"email": email, "otp": otp})
 
-    # Login password reset
     def request_login_reset(self, email):
         return self._call("post", "/reset_login_password/request", json={"email": email})
     def confirm_login_reset(self, email, otp, new_password):
         return self._call("post", "/reset_login_password/confirm",
                           json={"email": email, "otp": otp, "new_password": new_password})
 
-    # Vault
     def get_vault(self, mp):
         return self._call("get", "/vault", headers=self._auth(), params={"masterPassword": mp})
     def add_entry(self, site, user, pw, mp):
@@ -254,7 +246,6 @@ class APIClient:
     def delete_vault(self, mp):
         return self._call("delete", "/vault", headers=self._auth(), json={"masterPassword": mp})
 
-    # Hints
     def save_hints(self, hints):
         return self._call("post", "/hints", headers=self._auth(), json={"hints": hints})
     def get_hints(self):
@@ -262,11 +253,9 @@ class APIClient:
     def delete_hints(self):
         return self._call("delete", "/hints", headers=self._auth())
 
-    # Passphrase
     def get_passphrase(self, words=4):
         return self._call("get", "/generate_passphrase", params={"words": words})
 
-    # Account
     def delete_account(self, login_pw, master_pw):
         return self._call("delete", "/account", headers=self._auth(),
                           json={"password": login_pw, "masterPassword": master_pw})
@@ -291,8 +280,9 @@ for k, v in _defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# Hidden input for JS → Python activity communication
-st.text_input("_activity_tracker", key="_js_activity_ts", label_visibility="hidden")
+# FIX 1: Hidden input ONLY on dashboard — removes grey bar from all other pages
+if st.session_state.get("page") == "dashboard":
+    st.text_input("_activity_tracker", key="_js_activity_ts", label_visibility="hidden")
 
 # HELPERS
 
@@ -309,7 +299,7 @@ def handle_auth_err():
     st.error("Session expired. Please log in again.")
     _session.clear(); st.rerun()
 
-# PAGE 1 — HOME  (Login / Sign Up / Forgot Login Password)
+# PAGE 1 — HOME
 
 if st.session_state.page == "home":
     logo_home()
@@ -323,7 +313,6 @@ if st.session_state.page == "home":
         )
         tab_login, tab_signup = st.tabs(["Login", "Sign Up"])
 
-        # LOGIN 
         with tab_login:
             l_email = st.text_input("Email",    key="login_email")
             l_pass  = st.text_input("Password", key="login_pass",  type="password")
@@ -344,7 +333,6 @@ if st.session_state.page == "home":
                 st.session_state.page = "reset_login_request"
                 st.rerun()
 
-        # SIGN UP 
         with tab_signup:
             s_email   = st.text_input("Email",            key="signup_email")
             s_pass    = st.text_input("Password",         key="signup_pass",    type="password")
@@ -357,7 +345,7 @@ if st.session_state.page == "home":
                     st.error("Passwords do not match.")
                 else:
                     _, score, tips = _checker.check(s_pass)
-                    if score < 3:  # block only Weak (score 0-2)
+                    if score < 3:
                         for t in tips: st.error(t)
                     else:
                         data, code = _api.signup(s_email, s_pass)
@@ -401,7 +389,7 @@ elif st.session_state.page == "reset_login_request":
     st.stop()
 
 
-# PAGE 1c — RESET LOGIN PASSWORD: CONFIRM (OTP + new password)
+# PAGE 1c — RESET LOGIN PASSWORD: CONFIRM
 
 elif st.session_state.page == "reset_login_confirm":
     logo_small()
@@ -466,7 +454,6 @@ elif st.session_state.page == "master_password_setup":
             "Write it somewhere safe."
         )
 
-        # Passphrase suggestion
         with st.expander("💡 Need a strong but memorable password? Generate a passphrase"):
             num_w = st.slider("Number of words", 3, 6, 4, key="pp_words_setup")
             if st.button("🎲 Generate Passphrase", key="gen_pp_setup"):
@@ -505,7 +492,8 @@ elif st.session_state.page == "master_password_setup":
                     st.session_state.page = "email_verification"
                     st.rerun()
     st.stop()
-# PAGE 3 — MASTER PASSWORD ENTRY  (unlock after login / auto-lock)
+
+# PAGE 3 — MASTER PASSWORD ENTRY
 
 elif st.session_state.page == "master_password_entry":
     logo_small()
@@ -579,7 +567,8 @@ elif st.session_state.page == "email_verification":
                 else: st.session_state.otp_sent = True; st.success("New code sent!")
     st.stop()
 
-# PAGE 5 — DASHBOAR
+# PAGE 5 — DASHBOARD
+
 elif st.session_state.page == "dashboard":
     _session.sync_from_js()
     _session.enforce()
@@ -609,11 +598,18 @@ elif st.session_state.page == "dashboard":
         c3.metric("Auto-lock",     _session.fmt(_session.seconds_remaining()))
         st.divider()
 
+        # FIX 2: col_add, col_view correctly indented inside the Vault tab block
         col_add, col_view = st.columns([1, 1.5])
 
-        # ADD ENTRY 
+        # ADD ENTRY
         with col_add:
             st.subheader("➕ Add Entry")
+
+            # FIX 3: Pop widget keys BEFORE widgets are instantiated using a flag
+            if st.session_state.pop("_clear_vault_inputs", False):
+                for k in ("vault_site", "vault_username", "vault_password"):
+                    st.session_state.pop(k, None)
+
             new_site = st.text_input("Site / Service",   key="vault_site")
             new_user = st.text_input("Username / Email", key="vault_username")
             new_pass = st.text_input("Password",         key="vault_password", type="password")
@@ -630,11 +626,12 @@ elif st.session_state.page == "dashboard":
                         ref, _ = _api.get_vault(st.session_state.master_password)
                         if ref and "vault" in ref:
                             st.session_state.password_vault = ref["vault"]
-                        st.success(data["message"]); st.rerun()
+                        st.session_state._clear_vault_inputs = True
+                        st.rerun()
                     elif data and is_auth_err(data): handle_auth_err()
                     elif data: st.error(data.get("error", "Could not save entry."))
 
-        # VIEW VAULT 
+        # VIEW VAULT
         with col_view:
             st.subheader("🔍 Your Vault")
 
@@ -678,8 +675,9 @@ elif st.session_state.page == "dashboard":
                         )
                         st.toast("Password copied!")
 
+    # =========================================================================
     # SETTINGS TAB
-
+    # =========================================================================
     elif st.session_state.nav == "⚙️ Settings":
         _session.touch()
         logo_small()
@@ -689,7 +687,7 @@ elif st.session_state.page == "dashboard":
             ["📝 Edit Entries", "🔑 Security", "🚨 Danger Zone"]
         )
 
-        # EDIT ENTRIES 
+        # EDIT ENTRIES
         with tab_edit:
             vault = st.session_state.get("password_vault", [])
             if not vault:
@@ -712,7 +710,7 @@ elif st.session_state.page == "dashboard":
                         st.success("Entry updated!"); st.rerun()
                     elif data: st.error(data.get("error", "Update failed."))
 
-        # SECURITY 
+        # SECURITY
         with tab_security:
             st.subheader("Change Master Password")
             st.warning(
@@ -757,11 +755,10 @@ elif st.session_state.page == "dashboard":
             m, s = st.session_state.auto_lock_val // 60, st.session_state.auto_lock_val % 60
             st.caption(f"Current: **{m}m {s}s** — countdown resets on any interaction.")
 
-        # DANGER ZONE 
+        # DANGER ZONE
         with tab_danger:
             st.error("⚠️ All actions below are **permanent and irreversible**.")
 
-            # Delete entire vault
             st.subheader("🗑️ Delete Entire Vault")
             st.write("Permanently deletes all vault entries. Your account remains active.")
             chk_vault = st.checkbox("I understand all stored passwords will be permanently deleted.",
@@ -780,7 +777,6 @@ elif st.session_state.page == "dashboard":
 
             st.divider()
 
-            # Delete account
             st.subheader("💀 Delete Account")
             st.write(
                 "Permanently deletes your account, all vault entries, and all hints. "
