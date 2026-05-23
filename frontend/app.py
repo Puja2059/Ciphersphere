@@ -277,6 +277,7 @@ _defaults = {
     "last_activity":    None,
     "nav":              "📂 Vault",
     "_js_activity_ts":  "",
+    "local_users":      {},
 }
 for k, v in _defaults.items():
     if k not in st.session_state:
@@ -301,6 +302,15 @@ def handle_auth_err():
     st.error("Session expired. Please log in again.")
     _session.clear(); st.rerun()
 
+def _local_user_exists(email: str) -> bool:
+    return email.strip().lower() in st.session_state.local_users
+
+def _local_register(email: str, password: str):
+    st.session_state.local_users[email.strip().lower()] = password
+
+def _local_authenticate(email: str, password: str) -> bool:
+    return st.session_state.local_users.get(email.strip().lower()) == password
+
 # PAGE 1 — HOME
 
 if st.session_state.page == "home":
@@ -321,6 +331,11 @@ if st.session_state.page == "home":
             if st.button("Access Vault", key="login_btn"):
                 if not l_email or not l_pass:
                     st.error("Please enter email and password.")
+                elif _local_authenticate(l_email, l_pass):
+                    st.session_state.token      = "local"
+                    st.session_state.user_email = l_email
+                    st.session_state.page       = "master_password_entry"
+                    st.rerun()
                 else:
                     data, code = _api.login(l_email, l_pass)
                     if data and "token" in data:
@@ -349,15 +364,14 @@ if st.session_state.page == "home":
                     _, score, tips = _checker.check(s_pass)
                     if score < 3:
                         for t in tips: st.error(t)
+                    elif _local_user_exists(s_email):
+                        st.error("An account with that email already exists.")
                     else:
-                        data, code = _api.signup(s_email, s_pass)
-                        if data and "error" in data:
-                            st.error(data["error"])
-                        elif data:
-                            if data.get("token"): st.session_state.token = data["token"]
-                            st.session_state.user_email = s_email
-                            st.session_state.page       = "master_password_setup"
-                            st.rerun()
+                        _local_register(s_email, s_pass)
+                        st.session_state.token      = "local"
+                        st.session_state.user_email = s_email
+                        st.session_state.page       = "master_password_setup"
+                        st.rerun()
     st.stop()
 
 
