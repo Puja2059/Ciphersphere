@@ -448,13 +448,9 @@ elif st.session_state.page == "master_password_setup":
     _, c2, _ = st.columns([1,1.5,1])
     with c2:
         st.title("🛡️ Secure Your Vault")
-        st.info(
-            "Your master password **encrypts every entry** in your vault. "
-            "It is **never sent to the server** — we cannot recover it. "
-            "Write it somewhere safe."
-        )
+    
 
-        with st.expander("💡 Need a strong but memorable password? Generate a passphrase"):
+        with st.expander(" Need a strong but memorable password? Generate a passphrase"):
             num_w = st.slider("Number of words", 3, 6, 4, key="pp_words_setup")
             if st.button("🎲 Generate Passphrase", key="gen_pp_setup"):
                 data, _ = _api.get_passphrase(num_w)
@@ -470,8 +466,8 @@ elif st.session_state.page == "master_password_setup":
         cp = st.text_input("Confirm Master Password", key="mp_confirm", type="password")
 
         st.markdown("---")
-        st.subheader("🔖 Memory Hints (optional)")
-        st.caption("Write clues to jog your memory — NOT the password itself. Stored as plain text.")
+        st.subheader(" Memory Hints (optional)")
+        st.caption("Write clues to jog your memory (NOT the password itself)")
         h1 = st.text_input("Hint 1 (e.g. 'name of my first pet')",     key="h1_setup")
         h2 = st.text_input("Hint 2 (e.g. 'city where I was born')",    key="h2_setup")
         h3 = st.text_input("Hint 3 (e.g. 'favourite childhood film')", key="h3_setup")
@@ -506,7 +502,7 @@ elif st.session_state.page == "master_password_entry":
 
         hints_data, _ = _api.get_hints()
         if hints_data and hints_data.get("hints"):
-            with st.expander("🔖 View your memory hints"):
+            with st.expander(" View your memory hints"):
                 for i, h in enumerate(hints_data["hints"], 1):
                     st.write(f"{i}. {h}")
 
@@ -667,7 +663,7 @@ elif st.session_state.page == "dashboard":
                     ec1.write(item["site"])
                     ec2.write(item["username"])
                     ec3.write("●" * min(len(item["password"]), 20))
-                    if ec4.button("📋", key=f"copy_{idx}"):
+                    if ec4.button("🗐", key=f"copy_{idx}"):
                         _session.touch()
                         components.html(
                             f"<script>navigator.clipboard.writeText({json.dumps(item['password'])});</script>",
