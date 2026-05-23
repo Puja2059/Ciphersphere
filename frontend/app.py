@@ -245,6 +245,8 @@ class APIClient:
                           json={"index": idx, "username": user, "password": pw, "masterPassword": mp})
     def delete_vault(self, mp):
         return self._call("delete", "/vault", headers=self._auth(), json={"masterPassword": mp})
+    def delete_entry(self, idx, mp):
+        return self._call("delete", "/vault/entry", headers=self._auth(), json={"index": idx, "masterPassword": mp})
 
     def save_hints(self, hints):
         return self._call("post", "/hints", headers=self._auth(), json={"hints": hints})
@@ -653,23 +655,41 @@ elif st.session_state.page == "dashboard":
                 filtered = [e for e in vault if search.strip().lower() in e["site"].lower()] if search.strip() else vault
                 st.caption(f"{len(filtered)} of {len(vault)} entries")
 
-                hc1, hc2, hc3, hc4 = st.columns([2,2,2,1])
-                for col, lbl in zip([hc1,hc2,hc3,hc4],["Site","Username","Password","Copy"]):
+                hc1, hc2, hc3, hc4, hc5 = st.columns([2,2,2,1,1])
+                for col, lbl in zip([hc1,hc2,hc3,hc4,hc5],["Site","Username","Password","Copy","Delete"]):
                     col.markdown(f"<span class='vault-header'>{lbl}</span>", unsafe_allow_html=True)
                 st.divider()
 
                 for idx, item in enumerate(filtered):
-                    ec1, ec2, ec3, ec4 = st.columns([2,2,2,1])
+                    ec1, ec2, ec3, ec4, ec5 = st.columns([2,2,2,1,1])
                     ec1.write(item["site"])
                     ec2.write(item["username"])
                     ec3.write("●" * min(len(item["password"]), 20))
-                    if ec4.button("🗐", key=f"copy_{idx}"):
+
+                    # Determine the original index in the full vault
+                    try:
+                        orig_idx = next(i for i,e in enumerate(vault)
+                                        if e["site"]==item["site"] and e["username"]==item["username"] and e["password"]==item["password"])
+                    except StopIteration:
+                        orig_idx = idx
+
+                    if ec4.button("🗐", key=f"copy_{orig_idx}"):
                         _session.touch()
                         components.html(
                             f"<script>navigator.clipboard.writeText({json.dumps(item['password'])});</script>",
                             height=0
                         )
                         st.toast("Password copied!")
+
+                    if ec5.button("🗑️", key=f"del_{orig_idx}"):
+                        _session.touch()
+                        # Delete locally from session state without calling backend
+                        try:
+                            st.session_state.password_vault.pop(orig_idx)
+                            st.success("Entry deleted locally.")
+                            st.rerun()
+                        except Exception:
+                            st.error("Failed to delete entry.")
 
     # =========================================================================
     # SETTINGS TAB
