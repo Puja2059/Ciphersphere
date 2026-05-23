@@ -661,41 +661,41 @@ elif st.session_state.page == "dashboard":
                     col.markdown(f"<span class='vault-header'>{lbl}</span>", unsafe_allow_html=True)
                 st.divider()
 
-                # Inside app.py — Replace your existing "for idx, item in enumerate(filtered):" loop block with this:
+                for idx, item in enumerate(filtered):
+                    ec1, ec2, ec3, ec4, ec5 = st.columns([2,2,2,1,1])
+                    ec1.write(item["site"])
+                    ec2.write(item["username"])
+                    ec3.write("●" * min(len(item["password"]), 20))
 
-for idx, item in enumerate(filtered):
-    ec1, ec2, ec3, ec4, ec5 = st.columns([2,2,2,1,1])
-    ec1.write(item["site"])
-    ec2.write(item["username"])
-    ec3.write("●" * min(len(item["password"]), 20))
+                    try:
+                        orig_idx = next(i for i, e in enumerate(vault)
+                                        if e["site"] == item["site"]
+                                        and e["username"] == item["username"]
+                                        and e["password"] == item["password"])
+                    except StopIteration:
+                        orig_idx = idx
 
-    # Determine the original index in the full vault safely
-    try:
-        orig_idx = next(i for i, e in enumerate(vault)
-                        if e["site"] == item["site"] and e["username"] == item["username"] and e["password"] == item["password"])
-    except StopIteration:
-        orig_idx = idx
+                    if ec4.button("🗐", key=f"copy_vault_{idx}_{orig_idx}"):
+                        _session.touch()
+                        components.html(
+                            f"<script>navigator.clipboard.writeText({json.dumps(item['password'])});</script>",
+                            height=0
+                        )
+                        st.toast("Password copied!")
 
-    # 🔑 FIX: Use a combined key of both the layout index and original index to guarantee absolute uniqueness
-    if ec4.button("🗐", key=f"copy_vault_{idx}_{orig_idx}"):
-        _session.touch()
-        components.html(
-            f"<script>navigator.clipboard.writeText({json.dumps(item['password'])});</script>",
-            height=0
-        )
-        st.toast("Password copied!")
+                    if ec5.button("Delete", key=f"del_vault_{idx}_{orig_idx}"):
+                        _session.touch()
+                        try:
+                            st.session_state.password_vault.pop(orig_idx)
+                            st.success("Entry deleted locally.")
+                            st.rerun()
+                        except Exception:
+                            st.error("Failed to delete entry.")
 
-    if ec5.button("🗑️", key=f"del_vault_{idx}_{orig_idx}"):
-        _session.touch()
-        # Delete locally from session state without calling backend
-        try:
-            st.session_state.password_vault.pop(orig_idx)
-            st.success("Entry deleted locally.")
-            st.rerun()
-        except Exception:
-            st.error("Failed to delete entry.")
+    # =========================================================================
     # SETTINGS TAB
-    elif st.session_state.nav == "⚙️ Settings":
+    # =========================================================================
+elif st.session_state.nav == "⚙️ Settings":
         _session.touch()
         logo_small()
         st.title("⚙️ Settings")
