@@ -676,7 +676,7 @@ elif st.session_state.page == "dashboard":
                     except StopIteration:
                         orig_idx = idx
 
-                    if ec4.button("🗐", key=f"copy_{orig_idx}"):
+                    if ec4.button("🗐", key=f"copy_vault_{item.get('id', orig_idx)}"):
                         _session.touch()
                         components.html(
                             f"<script>navigator.clipboard.writeText({json.dumps(item['password'])});</script>",
@@ -684,7 +684,7 @@ elif st.session_state.page == "dashboard":
                         )
                         st.toast("Password copied!")
 
-                    if ec5.button("🗑️", key=f"del_{orig_idx}"):
+                    if ec5.button("Delete", key=f"del_{orig_idx}"):
                         _session.touch()
                         # Delete locally from session state without calling backend
                         try:
