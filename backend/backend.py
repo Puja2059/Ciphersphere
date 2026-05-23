@@ -1041,7 +1041,7 @@ def delete_account(email):
                 except Exception:
                     return jsonify({"error": "Incorrect master password."}), 401
 
-            # Step 3: delete user — CASCADE removes vault + hints automatically
+            # Step 3: delete user  
             cur.execute("DELETE FROM users WHERE LOWER(email)=LOWER(%s)", (email,))
             conn.commit()
         finally:
