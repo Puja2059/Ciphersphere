@@ -587,9 +587,7 @@ elif st.session_state.page == "dashboard":
         if st.button("Logout", key="sidebar_logout"):
             _session.clear(); st.rerun()
 
-    # =========================================================================
     # VAULT TAB
-    # =========================================================================
     if st.session_state.nav == "📂 Vault":
         logo_small()
 
@@ -663,40 +661,40 @@ elif st.session_state.page == "dashboard":
                     col.markdown(f"<span class='vault-header'>{lbl}</span>", unsafe_allow_html=True)
                 st.divider()
 
-                for idx, item in enumerate(filtered):
-                    ec1, ec2, ec3, ec4, ec5 = st.columns([2,2,2,1,1])
-                    ec1.write(item["site"])
-                    ec2.write(item["username"])
-                    ec3.write("●" * min(len(item["password"]), 20))
+                # Inside app.py — Replace your existing "for idx, item in enumerate(filtered):" loop block with this:
 
-                    # Determine the original index in the full vault
-                    try:
-                        orig_idx = next(i for i,e in enumerate(vault)
-                                        if e["site"]==item["site"] and e["username"]==item["username"] and e["password"]==item["password"])
-                    except StopIteration:
-                        orig_idx = idx
+for idx, item in enumerate(filtered):
+    ec1, ec2, ec3, ec4, ec5 = st.columns([2,2,2,1,1])
+    ec1.write(item["site"])
+    ec2.write(item["username"])
+    ec3.write("●" * min(len(item["password"]), 20))
 
-                    if ec4.button("🗐", key=f"copy_vault_{item.get('id', orig_idx)}"):
-                        _session.touch()
-                        components.html(
-                            f"<script>navigator.clipboard.writeText({json.dumps(item['password'])});</script>",
-                            height=0
-                        )
-                        st.toast("Password copied!")
+    # Determine the original index in the full vault safely
+    try:
+        orig_idx = next(i for i, e in enumerate(vault)
+                        if e["site"] == item["site"] and e["username"] == item["username"] and e["password"] == item["password"])
+    except StopIteration:
+        orig_idx = idx
 
-                    if ec5.button("Delete", key=f"del_{orig_idx}"):
-                        _session.touch()
-                        # Delete locally from session state without calling backend
-                        try:
-                            st.session_state.password_vault.pop(orig_idx)
-                            st.success("Entry deleted locally.")
-                            st.rerun()
-                        except Exception:
-                            st.error("Failed to delete entry.")
+    # 🔑 FIX: Use a combined key of both the layout index and original index to guarantee absolute uniqueness
+    if ec4.button("🗐", key=f"copy_vault_{idx}_{orig_idx}"):
+        _session.touch()
+        components.html(
+            f"<script>navigator.clipboard.writeText({json.dumps(item['password'])});</script>",
+            height=0
+        )
+        st.toast("Password copied!")
 
-    # =========================================================================
+    if ec5.button("🗑️", key=f"del_vault_{idx}_{orig_idx}"):
+        _session.touch()
+        # Delete locally from session state without calling backend
+        try:
+            st.session_state.password_vault.pop(orig_idx)
+            st.success("Entry deleted locally.")
+            st.rerun()
+        except Exception:
+            st.error("Failed to delete entry.")
     # SETTINGS TAB
-    # =========================================================================
     elif st.session_state.nav == "⚙️ Settings":
         _session.touch()
         logo_small()
