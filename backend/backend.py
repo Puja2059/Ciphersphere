@@ -546,7 +546,6 @@ def verify_otp():
 
 # SIGNUP 
 @app.route('/signup', methods=['POST'])
-@rate_limit(10, 3600)
 def signup():
     data     = request.get_json(silent=True) or {}
     email    = data.get("email", "").strip()
@@ -578,7 +577,6 @@ def signup():
 
 # LOGIN 
 @app.route('/login', methods=['POST'])
-@rate_limit(10, 60)
 def login():
     data     = request.get_json(silent=True) or {}
     email    = data.get("email", "").strip()
