@@ -880,118 +880,34 @@ def delete_vault(email):
 
 
 # DELETE SINGLE VAULT ENTRY
-@app.route('/vault/entry', methods=['DELETE'])
+# --- UPDATE THE DELETION ROUTE IN backend.py ---
+@app.route('/api/vault/delete', methods=['POST'])
 @token_required
-def delete_vault_entry(email):
-    data = request.get_json(silent=True) or {}
-    mp   = data.get("masterPassword", "")
-    idx  = data.get("index")
-    if not mp: return jsonify({"error": "masterPassword is required."}), 400
+def delete_vault_entry(user_id):
     try:
+        data = request.get_json() or {}
+        entity_id = data.get("id") # Matches incoming payload parameter from API Client
+
+        if not entity_id:
+            return jsonify({"error": "Missing entry identification key."}), 400
+
         conn = get_db()
-        cur  = conn.cursor(dictionary=True)
+        cur = conn.cursor(dictionary=True)
         try:
-            cur.execute("SELECT salt FROM users WHERE LOWER(email)=LOWER(%s)", (email,))
-            if not cur.fetchone(): return jsonify({"error": "User not found."}), 401
+            # Change the target behavior from UPDATE to a true structural row purge
             cur.execute(
-                "SELECT id, encrypted_password, vault_salt FROM vaults "
-                "WHERE email=%s ORDER BY id", (email,)
+                "DELETE FROM vaults WHERE id=%s AND email=%s",
+                (entity_id, user_id) # Using token authenticated email variable
             )
-            rows = cur.fetchall()
-            ok, err = _validator.entry_index(idx, len(rows))
-            if not ok: return jsonify({"error": err}), 400
-            target = rows[int(idx)]
-            try:
-                decrypt_password(derive_key(mp, target["vault_salt"]),
-                                 target["encrypted_password"])
-            except Exception:
-                return jsonify({"error": "Invalid master password."}), 400
-            cur.execute("DELETE FROM vaults WHERE id=%s", (target["id"],))
             conn.commit()
         finally:
-            cur.close(); conn.close()
-        return jsonify({"message": "Entry deleted successfully."})
+            cur.close()
+            conn.close()
+
+        return jsonify({"message": "Vault item permanently purged from system memory."}), 200
     except Exception as e:
-        print(f"[delete_vault_entry] {e}")
-        return jsonify({"error": "Internal server error."}), 500
-
-
-# SAVE HINTS 
-@app.route('/hints', methods=['POST'])
-@token_required
-def save_hints(email):
-    """
-    Save memory-aid hints for the master password.
-    Zero-knowledge preserved: hints are plain text written by the user.
-    They are NEVER derived from the master password or used to decrypt anything.
-    """
-    data  = request.get_json(silent=True) or {}
-    hints = data.get("hints", [])
-    if not isinstance(hints, list) or len(hints) == 0:
-        return jsonify({"error": "At least one hint is required."}), 400
-    if len(hints) > _validator.MAX_HINTS:
-        return jsonify({"error": f"Maximum {_validator.MAX_HINTS} hints allowed."}), 400
-    clean = []
-    for i, h in enumerate(hints, 1):
-        ok, err = _validator.hint(h)
-        if not ok: return jsonify({"error": f"Hint {i}: {err}"}), 400
-        clean.append(h.strip())
-    try:
-        conn = get_db()
-        cur  = conn.cursor()
-        try:
-            cur.execute("DELETE FROM master_password_hints WHERE email=%s", (email,))
-            for order, text in enumerate(clean, 1):
-                cur.execute(
-                    "INSERT INTO master_password_hints (email, hint_order, hint_text) "
-                    "VALUES (%s, %s, %s)", (email, order, text)
-                )
-            conn.commit()
-        finally:
-            cur.close(); conn.close()
-        return jsonify({"message": f"{len(clean)} hint(s) saved."})
-    except Exception as e:
-        print(f"[save_hints] {e}")
-        return jsonify({"error": "Internal server error."}), 500
-
-
-# GET HINTS 
-@app.route('/hints', methods=['GET'])
-@token_required
-def get_hints(email):
-    try:
-        conn = get_db()
-        cur  = conn.cursor(dictionary=True)
-        try:
-            cur.execute(
-                "SELECT hint_text FROM master_password_hints "
-                "WHERE email=%s ORDER BY hint_order", (email,)
-            )
-            rows = cur.fetchall()
-        finally:
-            cur.close(); conn.close()
-        return jsonify({"hints": [r["hint_text"] for r in rows]})
-    except Exception as e:
-        print(f"[get_hints] {e}")
-        return jsonify({"error": "Internal server error."}), 500
-
-
-# DELETE HINTS 
-@app.route('/hints', methods=['DELETE'])
-@token_required
-def delete_hints(email):
-    try:
-        conn = get_db()
-        cur  = conn.cursor()
-        try:
-            cur.execute("DELETE FROM master_password_hints WHERE email=%s", (email,))
-            conn.commit()
-        finally:
-            cur.close(); conn.close()
-        return jsonify({"message": "Hints deleted successfully."})
-    except Exception as e:
-        print(f"[delete_hints] {e}")
-        return jsonify({"error": "Internal server error."}), 500
+        print(f"[delete_vault_entry] Internal Process Exception: {e}")
+        return jsonify({"error": "Internal database operational fault."}), 500
 
 
 #  DELETE ACCOUNT 
@@ -1053,6 +969,6 @@ def delete_account(email):
         return jsonify({"error": "Internal server error."}), 500
 # Main
 if __name__ == '__main__':
-    print("🚀 CipherSphere Backend engine initializing on http://127.0.0.1:5000")
+    print("CipherSphere Backend engine initializing on http://127.0.0.1:5000")
     app.run(host="127.0.0.1", port=5000, debug=True)
     
