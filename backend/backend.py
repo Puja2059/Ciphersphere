@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 from flask import Flask, request, jsonify
 import hashlib, os, re, base64, smtplib, secrets, time, threading
 from Crypto.Cipher import AES
@@ -1022,4 +1020,3 @@ def delete_account(email):
 # MAIN
 if __name__ == '__main__':
     app.run(debug=False)
->>>>>>> backend
