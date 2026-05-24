@@ -673,12 +673,15 @@ elif st.session_state.page == "dashboard":
                         )
                         st.toast("Password copied!")
 
-                    
-                    if st.button("🗑️ Delete", key=f"del_{item['id']}"):
-                        res, code = _api.delete_entry(item['id'], st.session_state.master_password)
+                
+                    if ec5.button("🗑️ Delete", key=f"del_vault_{idx}_{orig_idx}"):
+                        _session.touch()
+                        
+                        res, code = _api.delete_entry(orig_idx, st.session_state.master_password)
                         if code == 200:
+                            st.session_state.password_vault.pop(orig_idx)
                             st.success("Entry deleted permanently!")
-                            st.rerun() # Forces Streamlit to instantly wipe the item from the active screen array
+                            st.rerun() 
                         else:
                             st.error(res.get("error", "Could not remove entry."))
 
