@@ -959,6 +959,80 @@ def delete_hints(email):
         return jsonify({"error": "Internal server error."}), 500
 
 
+# DELETE SINGLE VAULT ENTRY (DELETE)
+@app.route('/vault/entry', methods=['DELETE'])
+@token_required
+def delete_vault_entry(email):
+    data = request.get_json(silent=True) or {}
+    mp   = data.get("masterPassword", "")
+    idx  = data.get("index")
+    if not mp: return jsonify({"error": "masterPassword is required."}), 400
+    try:
+        conn = get_db()
+        cur  = conn.cursor(dictionary=True)
+        try:
+            cur.execute("SELECT salt FROM users WHERE LOWER(email)=LOWER(%s)", (email,))
+            if not cur.fetchone(): return jsonify({"error": "User not found."}), 401
+            cur.execute(
+                "SELECT id, encrypted_password, vault_salt FROM vaults "
+                "WHERE email=%s ORDER BY id", (email,)
+            )
+            rows = cur.fetchall()
+            ok, err = _validator.entry_index(idx, len(rows))
+            if not ok: return jsonify({"error": err}), 400
+            target = rows[int(idx)]
+            try:
+                decrypt_password(derive_key(mp, target["vault_salt"]),
+                                 target["encrypted_password"])
+            except Exception:
+                return jsonify({"error": "Invalid master password."}), 400
+            cur.execute("DELETE FROM vaults WHERE id=%s", (target["id"],))
+            conn.commit()
+        finally:
+            cur.close(); conn.close()
+        return jsonify({"message": "Entry deleted successfully."})
+    except Exception as e:
+        print(f"[delete_vault_entry] {e}")
+        return jsonify({"error": "Internal server error."}), 500
+
+
+# DELETE SINGLE VAULT ENTRY (POST) - fallback for clients that drop DELETE bodies
+@app.route('/vault/entry/delete', methods=['POST'])
+@token_required
+def delete_vault_entry_post(email):
+    data = request.get_json(silent=True) or {}
+    mp   = data.get("masterPassword", "")
+    idx  = data.get("index")
+    if not mp: return jsonify({"error": "masterPassword is required."}), 400
+    try:
+        conn = get_db()
+        cur  = conn.cursor(dictionary=True)
+        try:
+            cur.execute("SELECT salt FROM users WHERE LOWER(email)=LOWER(%s)", (email,))
+            if not cur.fetchone(): return jsonify({"error": "User not found."}), 401
+            cur.execute(
+                "SELECT id, encrypted_password, vault_salt FROM vaults "
+                "WHERE email=%s ORDER BY id", (email,)
+            )
+            rows = cur.fetchall()
+            ok, err = _validator.entry_index(idx, len(rows))
+            if not ok: return jsonify({"error": err}), 400
+            target = rows[int(idx)]
+            try:
+                decrypt_password(derive_key(mp, target["vault_salt"]),
+                                 target["encrypted_password"])
+            except Exception:
+                return jsonify({"error": "Invalid master password."}), 400
+            cur.execute("DELETE FROM vaults WHERE id=%s", (target["id"],))
+            conn.commit()
+        finally:
+            cur.close(); conn.close()
+        return jsonify({"message": "Entry deleted successfully."})
+    except Exception as e:
+        print(f"[delete_vault_entry_post] {e}")
+        return jsonify({"error": "Internal server error."}), 500
+
+
 #  DELETE ACCOUNT 
 @app.route('/account', methods=['DELETE'])
 @token_required

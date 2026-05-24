@@ -261,7 +261,7 @@ class APIClient:
                           json={"password": login_pw, "masterPassword": master_pw})
 
     def delete_entry(self, idx, mp):
-        return self._call("delete", "/vault/entry", headers=self._auth(),
+        return self._call("post", "/vault/entry/delete", headers=self._auth(),
                           json={"index": idx, "masterPassword": mp})
 
 _api = APIClient()
@@ -284,7 +284,6 @@ for k, v in _defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# FIX 1: Hidden input ONLY on dashboard 
 if st.session_state.get("page") == "dashboard":
     st.text_input("_activity_tracker", key="_js_activity_ts", label_visibility="hidden")
 
