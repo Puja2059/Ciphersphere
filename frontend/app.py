@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 import re, json
 from pathlib import Path
 import streamlit as st
@@ -286,7 +284,7 @@ for k, v in _defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# FIX 1: Hidden input ONLY on dashboard — removes grey bar from all other pages
+# FIX 1: Hidden input ONLY on dashboard 
 if st.session_state.get("page") == "dashboard":
     st.text_input("_activity_tracker", key="_js_activity_ts", label_visibility="hidden")
 
@@ -476,7 +474,7 @@ elif st.session_state.page == "master_password_setup":
         cp = st.text_input("Confirm Master Password", key="mp_confirm", type="password")
 
         st.markdown("---")
-        st.subheader("🔖 Memory Hints (optional)")
+        st.subheader(" Memory Hints (optional)")
         st.caption("Write clues to jog your memory — NOT the password itself. Stored as plain text.")
         h1 = st.text_input("Hint 1 (e.g. 'name of my first pet')",     key="h1_setup")
         h2 = st.text_input("Hint 2 (e.g. 'city where I was born')",    key="h2_setup")
@@ -512,7 +510,7 @@ elif st.session_state.page == "master_password_entry":
 
         hints_data, _ = _api.get_hints()
         if hints_data and hints_data.get("hints"):
-            with st.expander("🔖 View your memory hints"):
+            with st.expander(" View your memory hints"):
                 for i, h in enumerate(hints_data["hints"], 1):
                     st.write(f"{i}. {h}")
 
@@ -592,9 +590,7 @@ elif st.session_state.page == "dashboard":
         if st.button("Logout", key="sidebar_logout"):
             _session.clear(); st.rerun()
 
-    # =========================================================================
     # VAULT TAB
-    # =========================================================================
     if st.session_state.nav == "📂 Vault":
         logo_small()
 
@@ -679,7 +675,7 @@ elif st.session_state.page == "dashboard":
                             height=0
                         )
                         st.toast("Password copied!")
-                    if ec5.button("🗑️", key=f"del_{idx}"):
+                    if ec5.button("Delete", key=f"del_{idx}"):
                         _session.touch()
                         real_idx = st.session_state.password_vault.index(item)
                         data, code = _api.delete_entry(real_idx, st.session_state.master_password)
@@ -692,9 +688,7 @@ elif st.session_state.page == "dashboard":
                         elif data and is_auth_err(data): handle_auth_err()
                         elif data: st.error(data.get("error", "Could not delete entry."))
 
-    # =========================================================================
     # SETTINGS TAB
-    # =========================================================================
     elif st.session_state.nav == "⚙️ Settings":
         _session.touch()
         logo_small()
@@ -818,4 +812,3 @@ elif st.session_state.page == "dashboard":
                         _session.clear(); st.rerun()
                     elif data and is_auth_err(data): handle_auth_err()
                     elif data: st.error(data.get("error","Deletion failed."))
->>>>>>> frontend
