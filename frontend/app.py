@@ -243,7 +243,17 @@ class APIClient:
 
     def delete_entry(self, idx, mp):
         return self._call("post", "/api/vault/delete", headers=self._auth(), 
-                      json={"id": idx, "masterPassword": mp})
+                          json={"id": idx, "masterPassword": mp})
+
+
+    def save_hints(self, hints):
+        return self._call("post", "/hints", headers=self._auth(), json={"hints": hints})
+
+    def get_hints(self):
+        return self._call("get", "/hints", headers=self._auth())
+
+    def delete_hints(self):
+        return self._call("delete", "/hints", headers=self._auth())
 
     def get_passphrase(self, words=4):
         return self._call("get", "/generate_passphrase", params={"words": words})
@@ -253,7 +263,6 @@ class APIClient:
                           json={"password": login_pw, "masterPassword": master_pw})
 
 _api = APIClient()
-
 # SESSION STATE DEFAULTS
 
 _defaults = {
