@@ -26,18 +26,13 @@ st.markdown("""
 .stButton>button:hover { background-color:#1a5fa8; }
 div[data-testid="stMetricValue"] { font-size:20px; color:#2e7bcf; }
 .vault-header { font-size:13px; color:#888; text-transform:uppercase; letter-spacing:1px; }
-/* Hide the JS activity-tracker input completely */
-input[aria-label="_activity_tracker"],
-div[data-testid="stTextInput"] input[aria-label="_activity_tracker"] {
-    position: absolute !important;
-    width: 1px !important;
-    height: 1px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: none !important;
-    opacity: 0 !important;
-    left: -9999px !important;
-    top: -9999px !important;
+
+/* Clean Activity Tracker Targeting Namespace */
+input[aria-label="_activity_tracker"] {
+    display: none !important;
+}
+div[data-testid="stCustomComponentV1"] {
+    display: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -245,15 +240,10 @@ class APIClient:
                           json={"index": idx, "username": user, "password": pw, "masterPassword": mp})
     def delete_vault(self, mp):
         return self._call("delete", "/vault", headers=self._auth(), json={"masterPassword": mp})
-    def delete_entry(self, idx, mp):
-        return self._call("delete", "/vault/entry", headers=self._auth(), json={"index": idx, "masterPassword": mp})
 
-    def save_hints(self, hints):
-        return self._call("post", "/hints", headers=self._auth(), json={"hints": hints})
-    def get_hints(self):
-        return self._call("get", "/hints", headers=self._auth())
-    def delete_hints(self):
-        return self._call("delete", "/hints", headers=self._auth())
+    def delete_entry(self, idx, mp):
+        return self._call("post", "/api/vault/delete", headers=self._auth(), 
+                      json={"id": idx, "masterPassword": mp})
 
     def get_passphrase(self, words=4):
         return self._call("get", "/generate_passphrase", params={"words": words})
@@ -282,7 +272,6 @@ for k, v in _defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# FIX 1: Hidden input ONLY on dashboard — removes grey bar from all other pages
 if st.session_state.get("page") == "dashboard":
     st.text_input("_activity_tracker", key="_js_activity_ts", label_visibility="hidden")
 
@@ -639,19 +628,11 @@ elif st.session_state.page == "dashboard":
                 if data and "vault" in data:
                     st.session_state.password_vault = data["vault"]
                 elif data and is_auth_err(data): handle_auth_err()
-
-            if st.button("🔄 Refresh", key="refresh_vault"):
-                _session.touch()
-                data, _ = _api.get_vault(st.session_state.master_password)
-                if data and "vault" in data:
-                    st.session_state.password_vault = data["vault"]; st.rerun()
-                elif data and is_auth_err(data): handle_auth_err()
-
             vault = st.session_state.password_vault
             if not vault:
                 st.info("Your vault is empty. Add your first entry on the left.")
             else:
-                search   = st.text_input("🔎 Filter entries", key="vault_search",
+                search   = st.text_input("🔎 Search Paasswords", key="vault_search",
                                          placeholder="Type a site name…")
                 filtered = [e for e in vault if search.strip().lower() in e["site"].lower()] if search.strip() else vault
                 st.caption(f"{len(filtered)} of {len(vault)} entries")
@@ -683,18 +664,17 @@ elif st.session_state.page == "dashboard":
                         )
                         st.toast("Password copied!")
 
-                    if ec5.button("Delete", key=f"del_vault_{idx}_{orig_idx}"):
-                        _session.touch()
-                        try:
-                            st.session_state.password_vault.pop(orig_idx)
-                            st.success("Entry deleted locally.")
-                            st.rerun()
-                        except Exception:
-                            st.error("Failed to delete entry.")
+                    
+                    if st.button("🗑️ Delete", key=f"del_{item['id']}"):
+                        res, code = _api.delete_entry(item['id'], st.session_state.master_password)
+                        if code == 200:
+                            st.success("Entry deleted permanently!")
+                            st.rerun() # Forces Streamlit to instantly wipe the item from the active screen array
+                        else:
+                            st.error(res.get("error", "Could not remove entry."))
 
-    # =========================================================================
+
     # SETTINGS TAB
-    # =========================================================================
 elif st.session_state.nav == "⚙️ Settings":
         _session.touch()
         logo_small()
