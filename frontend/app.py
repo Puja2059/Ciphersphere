@@ -243,7 +243,7 @@ class APIClient:
 
     def delete_entry(self, idx, mp):
         return self._call("post", "/api/vault/delete", headers=self._auth(), 
-                          json={"id": idx, "masterPassword": mp})
+                          json={"index": idx, "masterPassword": mp})
 
 
     def save_hints(self, hints):
@@ -674,7 +674,7 @@ elif st.session_state.page == "dashboard":
                         st.toast("Password copied!")
 
                 
-                    if ec5.button("🗑️ Delete", key=f"del_vault_{idx}_{orig_idx}"):
+                    if ec5.button("Delete", key=f"del_vault_{idx}_{orig_idx}"):
                         _session.touch()
                         
                         res, code = _api.delete_entry(orig_idx, st.session_state.master_password)

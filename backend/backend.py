@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, json, request, jsonify
 import hashlib, os, re, base64, smtplib, secrets, time, threading
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import PBKDF2
@@ -880,34 +880,59 @@ def delete_vault(email):
 
 
 # DELETE SINGLE VAULT ENTRY
-# --- UPDATE THE DELETION ROUTE IN backend.py ---
 @app.route('/api/vault/delete', methods=['POST'])
 @token_required
 def delete_vault_entry(user_id):
     try:
         data = request.get_json() or {}
-        entity_id = data.get("id") # Matches incoming payload parameter from API Client
+        
+        # CHANGED: Look for "index" instead of "id" to grab the array location index
+        idx = data.get("index")
+        master_pw = data.get("masterPassword")
 
-        if not entity_id:
-            return jsonify({"error": "Missing entry identification key."}), 400
+        if idx is None or master_pw is None:
+            return jsonify({"error": "Missing entry identification key or password parameters."}), 400
 
         conn = get_db()
         cur = conn.cursor(dictionary=True)
         try:
-            # Change the target behavior from UPDATE to a true structural row purge
             cur.execute(
-                "DELETE FROM vaults WHERE id=%s AND email=%s",
-                (entity_id, user_id) # Using token authenticated email variable
+                "SELECT encrypted_password, vault_salt FROM vaults WHERE user_id=%s LIMIT 1",
+                (user_id,)
+            )
+            row = cur.fetchone()
+            if not row:
+                return jsonify({"error": "Vault repository container not found."}), 404
+
+            try:
+                key = derive_key(master_pw, row["vault_salt"])
+                decrypted_raw = decrypt_password(key, row["encrypted_password"])
+                vault_list = json.loads(decrypted_raw)
+            except Exception:
+                return jsonify({"error": "Decryption alignment failed. Master password may be invalid."}), 401
+
+            if not isinstance(idx, int) or idx < 0 or idx >= len(vault_list):
+                return jsonify({"error": "Invalid target index parameter range mapping."}), 400
+
+            vault_list.pop(idx)
+
+            updated_raw = json.dumps(vault_list)
+            new_encrypted_blob = encrypt_password(key, updated_raw)
+
+            cur.execute(
+                "UPDATE vaults SET encrypted_password=%s WHERE user_id=%s",
+                (new_encrypted_blob, user_id)
             )
             conn.commit()
+
         finally:
             cur.close()
             conn.close()
 
-        return jsonify({"message": "Vault item permanently purged from system memory."}), 200
+        return jsonify({"message": "Vault entry permanently removed from crypt storage."}), 200
     except Exception as e:
-        print(f"[delete_vault_entry] Internal Process Exception: {e}")
-        return jsonify({"error": "Internal database operational fault."}), 500
+        print(f"[delete_vault_entry] Internal System Fault: {e}")
+        return jsonify({"error": "Internal server processing error."}), 500
 
 
 #  DELETE ACCOUNT 
