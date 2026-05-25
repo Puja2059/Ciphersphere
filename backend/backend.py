@@ -159,9 +159,7 @@ WORDLIST = [
 
 class PassphraseGenerator:
     """
-    Generates memorable but cryptographically strong passphrases.
-    No external library — built from scratch.
-    Example output: "Forest-Hammer-Dragon-Castle-47"
+    Generates memorable but cryptographically strong passphrases."
     """
     def generate(self, num_words=4, separator="-", capitalise=True, add_digit=True) -> str:
         words = [secrets.choice(WORDLIST) for _ in range(num_words)]
@@ -996,7 +994,7 @@ def delete_vault_entry(email):
         return jsonify({"error": "Internal server error."}), 500
 
 
-# DELETE SINGLE VAULT ENTRY (POST) - fallback for clients that drop DELETE bodies
+# DELETE SINGLE VAULT ENTRY (POST)
 @app.route('/vault/entry/delete', methods=['POST'])
 @token_required
 def delete_vault_entry_post(email):
