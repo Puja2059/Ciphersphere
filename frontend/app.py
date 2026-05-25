@@ -287,7 +287,6 @@ for k, v in _defaults.items():
 if st.session_state.get("page") == "dashboard":
     st.text_input("_activity_tracker", key="_js_activity_ts", label_visibility="hidden")
 
-# HELPERS
 
 def logo_home():
     _, c, _ = st.columns([3,2,3])
@@ -599,14 +598,12 @@ elif st.session_state.page == "dashboard":
         c3.metric("Auto-lock",     _session.fmt(_session.seconds_remaining()))
         st.divider()
 
-        # FIX 2: col_add, col_view correctly indented inside the Vault tab block
         col_add, col_view = st.columns([1, 1.5])
 
         # ADD ENTRY
         with col_add:
             st.subheader("➕ Add Entry")
 
-            # Use clear_on_submit=True — the only reliable way to clear inputs in Streamlit
             with st.form("add_entry_form", clear_on_submit=True):
                 new_site = st.text_input("Site / Service")
                 new_user = st.text_input("Username / Email")
@@ -694,7 +691,7 @@ elif st.session_state.page == "dashboard":
         st.title("⚙️ Settings")
 
         tab_edit, tab_security, tab_danger = st.tabs(
-            ["📝 Edit Entries", "🔑 Security", "🚨 Danger Zone"]
+            ["📝 Edit Entries", "🔑 Security", " Danger Zone"]
         )
 
         # EDIT ENTRIES
@@ -769,7 +766,7 @@ elif st.session_state.page == "dashboard":
         with tab_danger:
             st.error("⚠️ All actions below are **permanent and irreversible**.")
 
-            st.subheader("🗑️ Delete Entire Vault")
+            st.subheader("Delete Entire Vault")
             st.write("Permanently deletes all vault entries. Your account remains active.")
             chk_vault = st.checkbox("I understand all stored passwords will be permanently deleted.",
                                     key="chk_del_vault")
@@ -787,7 +784,7 @@ elif st.session_state.page == "dashboard":
 
             st.divider()
 
-            st.subheader("💀 Delete Account")
+            st.subheader("Delete Account")
             st.write(
                 "Permanently deletes your account, all vault entries, and all hints. "
                 "This action **cannot be undone**. "
@@ -799,7 +796,7 @@ elif st.session_state.page == "dashboard":
                 "I understand my account and all data will be permanently deleted.",
                 key="chk_del_account"
             )
-            if st.button("💀 Permanently Delete My Account", key="del_account_btn"):
+            if st.button(" Permanently Delete My Account", key="del_account_btn"):
                 if not chk_account:
                     st.error("Please tick the confirmation checkbox first.")
                 elif not del_login_pw or not del_master_pw:
